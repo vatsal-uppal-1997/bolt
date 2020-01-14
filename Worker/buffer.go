@@ -6,8 +6,8 @@ import (
 )
 
 type FileContent struct {
-	offset int64
-	buffer io.ReadCloser
+	chunk  ChunkInfo
+	buffer io.Reader
 }
 
 type Buffer struct {
@@ -30,9 +30,42 @@ func (this *Buffer) Done(work FileContent) {
 	this.buffer <- work
 }
 
+func (this *Buffer) transformReaders(chunked map[int64]FileContent) []FileContent {
+	arr := make([]FileContent, 0)
+
+	done := make(map[int64]bool)
+
+	for _, value := range chunked {
+		if _, ok := done[value.chunk.ChunkEnd]; ok {
+			continue
+		}
+		fContent, ok := chunked[value.chunk.ChunkEnd]
+		if ok {
+			chunkInfo := ChunkInfo{
+				ChunkStart: value.chunk.ChunkStart,
+				ChunkEnd:   fContent.chunk.ChunkEnd,
+				ChunkStr:   "",
+			}
+			buffer := io.MultiReader(value.buffer, fContent.buffer)
+			arr = append(arr, FileContent{chunk: chunkInfo, buffer: buffer})
+			done[chunkInfo.ChunkEnd] = true
+		} else {
+			arr = append(arr, value)
+		}
+	}
+
+	return arr
+}
+
 func (this *Buffer) Flush() {
+	chunkedContent := make(map[int64]FileContent)
 	for i := range this.buffer {
-		this.writer.Write(i.offset, i.buffer)
+		chunkedContent[i.chunk.ChunkStart] = i
+	}
+
+	joinedBuffers := this.transformReaders(chunkedContent)
+	for _, val := range joinedBuffers {
+		this.writer.Write(val.chunk.ChunkStart, val.buffer)
 	}
 }
 

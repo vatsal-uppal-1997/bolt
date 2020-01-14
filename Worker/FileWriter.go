@@ -20,7 +20,7 @@ func (this *FileWriter) Close() {
 	this.Fd.Close()
 }
 
-func (this *FileWriter) Write(offset int64, content io.ReadCloser) {
+func (this *FileWriter) Write(offset int64, content io.Reader) {
 	_, err := os.Stat(this.FileName)
 	this.Mutex.Lock()
 
@@ -28,6 +28,8 @@ func (this *FileWriter) Write(offset int64, content io.ReadCloser) {
 		this.Fd, err = os.Create(this.FileName)
 		errorHandler.HandleError(err, "Unable to create new file", true)
 		this.Fd.Truncate(this.FileLength + 100)
+	} else if this.Fd == nil {
+		this.Fd, err = os.OpenFile(this.FileName, os.O_RDWR|os.O_APPEND, 0755)
 	}
 
 	_, err = this.Fd.Seek(offset, 0)
@@ -40,7 +42,6 @@ func (this *FileWriter) Write(offset int64, content io.ReadCloser) {
 	this.Downloaded += float64(bytes)
 	donePercentage := this.Downloaded / float64(this.FileLength) * 100
 	fmt.Printf("%f percent file downloaded\n", donePercentage)
-	content.Close()
 	this.Mutex.Unlock()
 }
 

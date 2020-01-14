@@ -43,5 +43,5 @@ func (this *Worker) Work(chunk ChunkInfo) {
 	resp, error := this.Client.Do(req)
 	Error.HandleError(error, "Request failed", true)
 
-	this.Dumper.Done(FileContent{offset: chunk.ChunkStart, buffer: resp.Body})
+	this.Dumper.Done(FileContent{chunk: chunk, buffer: resp.Body})
 }
