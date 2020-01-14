@@ -17,6 +17,13 @@ type Worker struct {
 	Dumper *Buffer
 }
 
+type ChunkInfo struct {
+	ChunkStart int64
+	ChunkEnd   int64
+
+	ChunkStr string
+}
+
 func (this *Worker) Init(fileLength int64, fileName string, bufferSize int) {
 	this.Client = &http.Client{}
 	this.Wg = &sync.WaitGroup{}
@@ -27,14 +34,14 @@ func (this *Worker) Init(fileLength int64, fileName string, bufferSize int) {
 	this.Dumper.Init(bufferSize, writer)
 }
 
-func (this *Worker) Work(offset int64, sliceRange string) {
+func (this *Worker) Work(chunk ChunkInfo) {
 	defer this.Wg.Done()
 	req, error := http.NewRequest("GET", this.Url, nil)
 	Error.HandleError(error, "Error while crafting request", true)
-	req.Header.Set("range", "bytes="+sliceRange)
+	req.Header.Set("range", "bytes="+chunk.ChunkStr)
 
 	resp, error := this.Client.Do(req)
 	Error.HandleError(error, "Request failed", true)
 
-	this.Dumper.Done(FileContent{offset: offset, buffer: resp.Body})
+	this.Dumper.Done(FileContent{offset: chunk.ChunkStart, buffer: resp.Body})
 }

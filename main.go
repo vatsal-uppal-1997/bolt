@@ -35,10 +35,16 @@ func threaded(url string, contentLength int64, workers int, fileName string) {
 	for i := 0; i < int(contentLength); i += chunks {
 		worker.Wg.Add(1)
 		if i+chunks >= int(contentLength) {
-			go worker.Work(int64(i), strconv.Itoa(i)+"-"+strconv.Itoa(int(contentLength)))
+			go worker.Work(Worker.ChunkInfo{
+				ChunkStart: int64(i),
+				ChunkEnd:   int64(contentLength),
+				ChunkStr:   strconv.Itoa(i) + "-" + strconv.Itoa(int(contentLength))})
 			break
 		}
-		go worker.Work(int64(i), strconv.Itoa(i)+"-"+strconv.Itoa(i+chunks))
+		go worker.Work(Worker.ChunkInfo{
+			ChunkStart: int64(i),
+			ChunkEnd:   int64(i + chunks),
+			ChunkStr:   strconv.Itoa(i) + "-" + strconv.Itoa(i+chunks)})
 	}
 	worker.Wg.Wait()
 	worker.Dumper.Close()
