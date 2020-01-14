@@ -31,7 +31,7 @@ func threaded(url string, contentLength int64, workers int, fileName string) {
 	var worker Worker.Worker
 
 	worker.Url = url
-	worker.Init(int64(contentLength), fileName)
+	worker.Init(int64(contentLength), fileName, int(524288000/chunks))
 	for i := 0; i < int(contentLength); i += chunks {
 		worker.Wg.Add(1)
 		if i+chunks >= int(contentLength) {
@@ -58,15 +58,16 @@ func main() {
 	workers := flag.Int("workers", 10, "Number of workers")
 	url := flag.String("url", "http://www.blabla.com", "The url of file to download")
 	out := flag.String("out", "bolt.jpeg", "Name of the output file")
+	threadedDownload := flag.Bool("threading", true, "Enable multi-threaded download")
 
 	flag.Parse()
 
 	threading, contentLength := supportsThreading(*url)
 
-	if threading {
+	if threading && *threadedDownload {
 		threaded(*url, contentLength, *workers, *out)
 	} else {
-		log.Println("Multi-Threaded download not supported - downloading synchronously")
+		log.Println("Downloading synchronously")
 		synchronus(*url, *out)
 	}
 

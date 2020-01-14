@@ -40,6 +40,7 @@ func (this *FileWriter) Write(offset int64, content io.ReadCloser) {
 	this.Downloaded += float64(bytes)
 	donePercentage := this.Downloaded / float64(this.FileLength) * 100
 	fmt.Printf("%f percent file downloaded\n", donePercentage)
+	content.Close()
 	this.Mutex.Unlock()
 }
 

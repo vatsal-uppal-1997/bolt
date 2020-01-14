@@ -14,15 +14,17 @@ type Worker struct {
 	ContentLength int64
 	Wg            *sync.WaitGroup
 
-	Dumper *FileWriter
+	Dumper *Buffer
 }
 
-func (this *Worker) Init(fileLength int64, fileName string) {
+func (this *Worker) Init(fileLength int64, fileName string, bufferSize int) {
 	this.Client = &http.Client{}
 	this.Wg = &sync.WaitGroup{}
-	this.Dumper = &FileWriter{}
-	this.Dumper.FileLength = fileLength
-	this.Dumper.FileName = fileName
+	writer := &FileWriter{}
+	writer.FileLength = fileLength
+	writer.FileName = fileName
+	this.Dumper = &Buffer{}
+	this.Dumper.Init(bufferSize, writer)
 }
 
 func (this *Worker) Work(offset int64, sliceRange string) {
@@ -34,6 +36,5 @@ func (this *Worker) Work(offset int64, sliceRange string) {
 	resp, error := this.Client.Do(req)
 	Error.HandleError(error, "Request failed", true)
 
-	defer resp.Body.Close()
-	this.Dumper.Write(offset, resp.Body)
+	this.Dumper.Done(FileContent{offset: offset, buffer: resp.Body})
 }
